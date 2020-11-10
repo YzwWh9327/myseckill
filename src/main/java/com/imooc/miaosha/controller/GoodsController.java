@@ -53,14 +53,9 @@ public class GoodsController {
     @ResponseBody
     public String list(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user) {
     	model.addAttribute("user", user);
-    	//取缓存
-//    	String html = redisService.get(GoodsKey.getGoodsList, "", String.class);
-//    	if(!StringUtils.isEmpty(html)) {
-//    		return html;
-//    	}
+
     	List<GoodsVo> goodsList = goodsService.listGoodsVo();
     	model.addAttribute("goodsList", goodsList);
-//    	 return "goods_list";
     	SpringWebContext ctx = new SpringWebContext(request,response,
     			request.getServletContext(),request.getLocale(), model.asMap(), applicationContext );
     	//手动渲染
@@ -104,7 +99,6 @@ public class GoodsController {
     	}
     	model.addAttribute("miaoshaStatus", miaoshaStatus);
     	model.addAttribute("remainSeconds", remainSeconds);
-//        return "goods_detail";
     	
     	SpringWebContext ctx = new SpringWebContext(request,response,
     			request.getServletContext(),request.getLocale(), model.asMap(), applicationContext );
@@ -142,6 +136,4 @@ public class GoodsController {
     	vo.setMiaoshaStatus(miaoshaStatus);
     	return Result.success(vo);
     }
-    
-    
 }

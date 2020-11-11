@@ -40,4 +40,12 @@ public class LoginController {
     	String token = userService.login(response, loginVo);
     	return Result.success(token);
     }
+    @RequestMapping("/do_register")
+    @ResponseBody
+    public Result<String> doRegister(HttpServletResponse response, @Valid LoginVo loginVo) {
+        log.info(loginVo.toString());
+        //登录
+        String token = userService.register(response, loginVo);
+        return Result.success(token);
+    }
 }

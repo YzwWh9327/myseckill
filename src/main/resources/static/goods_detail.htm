@@ -48,7 +48,7 @@
         		<button class="btn btn-primary btn-block" type="submit" id="buyButton">立即秒杀</button>
         		<input type="hidden" name="goodsId"  id="goodsId" />
         	</form>-->
-        	<button class="btn btn-primary btn-block" type="button" id="buyButton"onclick="doMiaosha()">立即秒杀</button>
+        	<button class="btn btn-primary btn-block" type="button" id="buyButton"onclick="getMiaoshaPath()">立即秒杀</button>
         	<input type="hidden" name="goodsId"  id="goodsId" />
         </td>
      </tr>
@@ -105,9 +105,32 @@ function getMiaoshaResult(goodsId){
 	});
 }
 
-function doMiaosha(){
+function getMiaoshaPath(){
+    var goodsId = g_getQueryString("goodsId");
+    g_showLoading();
+    $.ajax({
+        url:"/miaosha/getpath",
+        type:"GET",
+        data:{
+            goodsId:$("#goodsId").val(),
+        },
+        success:function(data){
+            if(data.code == 0){
+                var path = data.data;
+                doMiaosha(path);
+            }else{
+                layer.msg(data.msg);
+            }
+        },
+        error:function(){
+            layer.msg("客户端请求有误");
+        }
+    });
+}
+
+function doMiaosha(path){
 	$.ajax({
-		url:"/miaosha/do_miaosha",
+		url:"/miaosha/do_miaosha/"+path,
 		type:"POST",
 		data:{
 			goodsId:$("#goodsId").val(),

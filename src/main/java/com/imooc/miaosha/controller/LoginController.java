@@ -27,7 +27,7 @@ public class LoginController {
 	@Autowired
 	RedisService redisService;
 	
-    @RequestMapping("/to_login")
+    @RequestMapping("/")
     public String toLogin() {
         return "login";
     }

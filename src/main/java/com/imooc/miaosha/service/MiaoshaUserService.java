@@ -45,7 +45,7 @@ public class MiaoshaUserService {
 		}
 		return user;
 	}
-	// http://blog.csdn.net/tTU1EvLDeLFq5btqiK/article/details/78693323
+
 	public boolean updatePassword(String token, long id, String formPass) {
 		//取user
 		MiaoshaUser user = getById(id);
@@ -76,7 +76,6 @@ public class MiaoshaUserService {
 		}
 		return user;
 	}
-	
 
 	public String login(HttpServletResponse response, LoginVo loginVo) {
 		if(loginVo == null) {

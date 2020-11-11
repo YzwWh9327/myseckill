@@ -9,8 +9,10 @@ import org.apache.ibatis.annotations.Update;
 
 import com.imooc.miaosha.domain.MiaoshaGoods;
 import com.imooc.miaosha.vo.GoodsVo;
+import org.springframework.stereotype.Component;
 
 @Mapper
+@Component
 public interface GoodsDao {
 	
 	@Select("select g.*,mg.stock_count, mg.start_date, mg.end_date,mg.miaosha_price from miaosha_goods mg left join goods g on mg.goods_id = g.id")

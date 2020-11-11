@@ -7,7 +7,5 @@
 # Editor-based HTTP Client requests
 /httpRequests/
 libraries/
-.idea/.name
-.idea/codeStyles/
-.idea/*.xml
+.idea/
 target/

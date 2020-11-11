@@ -1,25 +1,23 @@
 package com.imooc.miaosha.controller;
 
+import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
 
+import com.imooc.miaosha.access.AccessLimit;
+import com.imooc.miaosha.redis.*;
+import com.imooc.miaosha.util.MD5Util;
+import com.imooc.miaosha.util.UUIDUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import com.imooc.miaosha.domain.MiaoshaOrder;
 import com.imooc.miaosha.domain.MiaoshaUser;
 import com.imooc.miaosha.rabbitmq.MQSender;
 import com.imooc.miaosha.rabbitmq.MiaoshaMessage;
-import com.imooc.miaosha.redis.GoodsKey;
-import com.imooc.miaosha.redis.MiaoshaKey;
-import com.imooc.miaosha.redis.OrderKey;
-import com.imooc.miaosha.redis.RedisService;
 import com.imooc.miaosha.result.CodeMsg;
 import com.imooc.miaosha.result.Result;
 import com.imooc.miaosha.service.GoodsService;
@@ -27,6 +25,11 @@ import com.imooc.miaosha.service.MiaoshaService;
 import com.imooc.miaosha.service.MiaoshaUserService;
 import com.imooc.miaosha.service.OrderService;
 import com.imooc.miaosha.vo.GoodsVo;
+
+import javax.imageio.ImageIO;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping("/miaosha")
@@ -80,21 +83,63 @@ public class MiaoshaController implements InitializingBean {
 		miaoshaService.reset(goodsList);
 		return Result.success(true);
 	}
-	
+	@RequestMapping(value="/verifyCode", method=RequestMethod.GET)
+	@ResponseBody
+	public Result<String> getMiaoshaVerifyCode(HttpServletResponse response, MiaoshaUser user,
+											   @RequestParam("goodsId")long goodsId) {
+		if (user == null) {
+			return Result.error(CodeMsg.SESSION_ERROR);
+		}
+		BufferedImage image = miaoshaService.createMiaoshaVerifyCode(user,goodsId);
+		try{
+			ServletOutputStream os = response.getOutputStream();
+			ImageIO.write(image,"JPEG",os);
+			os.flush();
+			os.close();
+			return null;
+		}catch (Exception e){
+			e.printStackTrace();
+			return Result.error(CodeMsg.MIAOSHA_FAILED);
+		}
+	}
+
+	@RequestMapping(value="/getpath", method=RequestMethod.GET)
+	@ResponseBody
+	@AccessLimit(seconds=5,maxCount=5)
+	public Result<String> getMiaoshaPath(MiaoshaUser user,
+										 @RequestParam("goodsId") long goodsId,
+										 @RequestParam(value = "verifyCode") int verifyCode) {
+		if (user == null) {
+			return Result.error(CodeMsg.SESSION_ERROR);
+		}
+		boolean checkVerifyCode = miaoshaService.checkVerifyCode(user,goodsId,verifyCode);
+		if(!checkVerifyCode){
+			return Result.error(CodeMsg.VERIFY_CODE_ERROR);
+		}
+		String randPath = MD5Util.md5(UUIDUtil.uuid());
+		redisService.set(MiaoshaKey.miaoshaPath,"" +user.getId()+"_"+goodsId,randPath);
+		return Result.success(randPath);
+	}
 	/**
 	 * QPS:1306
 	 * 5000 * 10
 	 * QPS: 2114
 	 * */
-    @RequestMapping(value="/do_miaosha", method=RequestMethod.POST)
+    @RequestMapping(value="/do_miaosha/{path}", method=RequestMethod.POST)
     @ResponseBody
-    public Result<Integer> miaosha(Model model,MiaoshaUser user,
-    		@RequestParam("goodsId")long goodsId) {
+	public Result<Integer> miaosha(Model model, MiaoshaUser user,
+								   @RequestParam("goodsId") long goodsId,
+								   @PathVariable String path) {
     	model.addAttribute("user", user);
     	if(user == null) {
     		return Result.error(CodeMsg.SESSION_ERROR);
     	}
-    	//内存标记，减少redis访问
+    	//检查前端传入的随机地址是否与后端存入的一致
+		String calPath = redisService.get(MiaoshaKey.miaoshaPath, "" + user.getId() + "_" + goodsId, String.class);
+    	if (!calPath.equals(path)){
+    		return Result.error(CodeMsg.INVALID_REQUEST);
+		}
+		//内存标记，减少redis访问
     	boolean over = localOverMap.get(goodsId);
     	if(over) {
     		return Result.error(CodeMsg.MIAO_SHA_OVER);

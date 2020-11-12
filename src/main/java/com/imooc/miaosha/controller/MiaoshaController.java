@@ -3,14 +3,12 @@ package com.imooc.miaosha.controller;
 import java.util.HashMap;
 import java.util.List;
 
+import com.imooc.miaosha.util.MD5Util;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import com.imooc.miaosha.domain.MiaoshaOrder;
 import com.imooc.miaosha.domain.MiaoshaUser;
@@ -80,21 +78,37 @@ public class MiaoshaController implements InitializingBean {
 		miaoshaService.reset(goodsList);
 		return Result.success(true);
 	}
-	
+	@RequestMapping(value="/getpath", method=RequestMethod.GET)
+	@ResponseBody
+	public Result<String> getMiaoshaPath(Model model,MiaoshaUser user,
+								   @RequestParam("goodsId")long goodsId) {
+		model.addAttribute("user", user);
+		if (user == null) {
+			return null;
+		}
+		String randPath = MD5Util.md5("" +user.getId()+""+goodsId);
+		redisService.set(MiaoshaKey.miaoshaPath,"" +user.getId()+"_"+goodsId,randPath);
+		return Result.success(randPath);
+	}
 	/**
 	 * QPS:1306
 	 * 5000 * 10
 	 * QPS: 2114
 	 * */
-    @RequestMapping(value="/do_miaosha", method=RequestMethod.POST)
+    @RequestMapping(value="/do_miaosha/{path}", method=RequestMethod.POST)
     @ResponseBody
-    public Result<Integer> miaosha(Model model,MiaoshaUser user,
-    		@RequestParam("goodsId")long goodsId) {
+	public Result<Integer> miaosha(Model model, MiaoshaUser user,
+								   @RequestParam("goodsId") long goodsId,
+								   @PathVariable String path) {
     	model.addAttribute("user", user);
     	if(user == null) {
     		return Result.error(CodeMsg.SESSION_ERROR);
     	}
-    	//内存标记，减少redis访问
+		String calPath = redisService.get(MiaoshaKey.miaoshaPath, "" + user.getId() + "_" + goodsId, String.class);
+    	if (!calPath.equals(path)){
+    		return Result.error(CodeMsg.INVALID_REQUEST);
+		}
+		//内存标记，减少redis访问
     	boolean over = localOverMap.get(goodsId);
     	if(over) {
     		return Result.error(CodeMsg.MIAO_SHA_OVER);

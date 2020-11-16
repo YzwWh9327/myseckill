@@ -31,6 +31,7 @@ public class CodeMsg {
 	public static CodeMsg INVALID_REQUEST = new CodeMsg(500502, "非法请求");
 	public static CodeMsg MIAOSHA_FAILED = new CodeMsg(500503, "秒杀失败");
 	public static CodeMsg VERIFY_CODE_ERROR = new CodeMsg(500504, "验证码错误");
+  
 	private CodeMsg( ) {
 	}
 			

@@ -3,6 +3,7 @@ package com.imooc.miaosha.redis;
 public class MiaoshaKey extends BasePrefix{
 
 
+
     private MiaoshaKey(int expireSeconds, String prefix) {
 		super(expireSeconds,prefix);
 	}
